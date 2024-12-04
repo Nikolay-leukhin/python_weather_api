@@ -26,4 +26,4 @@ class Evaluator:
         if weather.humidity < 20:
             score += 2
 
-        return score >= 5
+        return score >= 3
