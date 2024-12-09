@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оценка погоды на твоем пути</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        function validateForm(event) {
+            const startPoint = document.getElementById('start_point').value.trim();
+            const endPoint = document.getElementById('end_point').value.trim();
+            const englishPattern = /^[A-Za-z\s]+$/;
+
+            if (startPoint === '' || endPoint === '') {
+                alert('Пожалуйста, заполните оба поля.');
+                event.preventDefault();
+                return false;
+            }
+
+            if (startPoint === endPoint) {
+                alert('Начальная и конечная точки не могут совпадать.');
+                event.preventDefault();
+                return false;
+            }
+
+            if (!englishPattern.test(startPoint) || !englishPattern.test(endPoint)) {
+                alert('Пожалуйста, используйте только английские буквы без чисел и других символов.');
+                event.preventDefault();
+                return false;
+            }
+
+            return true;
+        }
+    </script>
+</head>
+<body>
+    <main>
+        <h1>Введи конец и начало маршрута</h1>
+        <p>Можно вводить данные только на английском, учти это</p>
+
+        <form action="/eval" method="post" onsubmit="return validateForm(event)">
+            <div>
+                <label for="start_point">Начальная точка:</label>
+                <input type="text" id="start_point" name="start_point" required pattern="[A-Za-z\s]+" title="Пожалуйста, используйте только английские буквы.">
+            </div>
+            <div>
+                <label for="end_point">Конечная точка:</label>
+                <input type="text" id="end_point" name="end_point" required pattern="[A-Za-z\s]+" title="Пожалуйста, используйте только английские буквы.">
+            </div>
+            <button type="submit">Оценить</button>
+        </form>
+    </main>
+</body>
+</html>

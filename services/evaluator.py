@@ -5,8 +5,9 @@ class Evaluator:
     @classmethod
     def is_bad_weather(cls, weather: WeatherModel) -> bool:
         score = 0
-
-        if weather.temp < -10:
+        if weather.temp < -24:
+            score += 3
+        elif weather.temp < -10:
             score += 2
         elif weather.temp > 35:
             score += 3
@@ -21,9 +22,14 @@ class Evaluator:
         elif weather.rain_prob > 40:
             score += 1
 
-        if weather.humidity > 80:
+        if weather.humidity > 92:
+            score += 3
+        elif weather.humidity > 80:
             score += 2
-        if weather.humidity < 20:
+        elif weather.humidity < 20:
             score += 2
-
         return score >= 3
+
+    @staticmethod
+    def eval_weather_list(data: list[WeatherModel]):
+        return any([Evaluator.is_bad_weather(item) for item in data])
