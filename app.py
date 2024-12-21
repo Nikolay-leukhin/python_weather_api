@@ -1,53 +1,111 @@
 from flask import Flask, render_template, request, redirect, url_for
-from flask.helpers import send_from_directory
 from dash import Dash, dcc, html, Input, Output
 import plotly.express as px
+import plotly.graph_objects as go
 import pandas as pd
-from models import WeatherModel
-from services import Evaluator, WeatherApi
+from services import WeatherApi
 from errors import LocationNotFoundError
 
 app = Flask(__name__)
 api = WeatherApi()
 
-dash_app = Dash(__name__, server=app, url_base_pathname='/dash/')
+data = []
+days = 1
+
+dash_app = Dash(__name__, server=app, url_base_pathname='/dashboard/')
 
 dash_app.layout = html.Div([
-    html.H1("Визуализация погодных данных"),
-    dcc.Dropdown(
-        id='parameter-dropdown',
-        options=[
-            {'label': 'Температура', 'value': 'temperature'},
-            {'label': 'Скорость ветра', 'value': 'wind_speed'},
-            {'label': 'Вероятность осадков', 'value': 'precipitation'}
-        ],
-        value='temperature',
-        placeholder="Выберите параметр"
-    ),
-    dcc.Graph(id='weather-graph')
+    html.H1("Weather Data Visualization"),
+    dcc.Tabs(id='tabs', value='graph', children=[
+        dcc.Tab(label='Графики', value='graph'),
+        dcc.Tab(label='Карта маршрута', value='map'),
+    ]),
+    html.Div(id='content')
 ])
 
 
 @dash_app.callback(
-    Output('weather-graph', 'figure'),
-    [Input('parameter-dropdown', 'value')]
+    Output('content', 'children'),
+    Input('tabs', 'value')
 )
-def update_graph(selected_param):
-    data = {
-        "city": ["Город A", "Город B", "Город C"],
-        "temperature": [15, 20, 25],
-        "wind_speed": [5, 10, 15],
-        "precipitation": [0.2, 0.4, 0.1]
-    }
+def render_content(tab):
+    if tab == 'graph':
+        return html.Div([
+            dcc.Dropdown(
+                id='metric-selector',
+                options=[
+                    {'label': 'Temperature', 'value': 'temperature'},
+                    {'label': 'Humidity', 'value': 'humidity'},
+                    {'label': 'Wind Speed', 'value': 'wind_speed'},
+                    {'label': 'Precipitation Probability', 'value': 'precipitation_probability'}
+                ],
+                value='temperature',
+                clearable=False,
+                style={'width': '50%'}
+            ),
+            dcc.Graph(id='weather-graph')
+        ])
+    elif tab == 'map':
+        if not data:
+            return html.H3("Нет данных для отображения маршрута")
+
+        df = pd.DataFrame(data)
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Scattermapbox(
+            lat=df['lat'],
+            lon=df['lon'],
+            mode='markers+lines',
+            marker=go.scattermapbox.Marker(size=10, color='blue'),
+            text=df.apply(lambda row: f"{row['city']} (Day {row['day']}): {row['temperature']}°C", axis=1),
+            hoverinfo='text'
+        ))
+
+        fig.update_layout(
+            mapbox=dict(
+                style='open-street-map',
+                zoom=3,
+                center=dict(lat=55, lon=40)
+            ),
+            height=600,
+            margin={"r": 0, "t": 0, "l": 0, "b": 0}
+        )
+
+        return dcc.Graph(figure=fig)
+
+
+@dash_app.callback(
+    Output('weather-graph', 'figure'),
+    [Input('metric-selector', 'value')]
+)
+def update_graph(selected_metric):
+    global days
     df = pd.DataFrame(data)
 
-    fig = px.bar(
-        df,
-        x="city",
-        y=selected_param,
-        title=f"График по параметру: {selected_param.capitalize()}",
-        labels={"city": "Город", selected_param: "Значение"}
-    )
+    if df.empty:
+        return px.scatter(title="No Data Available")
+
+    if days == 1:
+        fig = px.bar(
+            df,
+            x="city",
+            y=selected_metric,
+            color="city",
+            title=f"Weather Metric: {selected_metric.capitalize()} (1 Day)",
+            labels={selected_metric: selected_metric.capitalize()},
+        )
+    else:
+        fig = px.line(
+            df,
+            x="day",
+            y=selected_metric,
+            color="city",
+            markers=True,
+            title=f"Weather Metric: {selected_metric.capitalize()}",
+            labels={'day': 'Day', selected_metric: selected_metric.capitalize()}
+        )
+
     return fig
 
 
@@ -58,27 +116,34 @@ def index():
 
 @app.route('/eval', methods=['POST'])
 def evaluate():
-    start_point = request.form['start_point']
-    end_point = request.form['end_point']
-
+    global data, days
     try:
-        start_weather = api.get_weather_by_city_name(start_point)
-        end_weather = api.get_weather_by_city_name(end_point)
 
-        result = "Плохие погодные условия" if Evaluator.eval_weather_list(
-            data=start_weather + end_weather) else "Хорошие погодные условия"
+        points = request.json['points']
+        points.append(points.pop(1))
+        print(points)
+        days = request.json['days']
+        weather_list = []
 
-        return render_template('result.html', result=result)
-    except LocationNotFoundError as ex:
-        return render_template('result.html', result="location not found")
+        for item in points:
+            weather_by_city = api.get_weather_by_city_name(item, days)
+            weather_list.extend(weather_by_city)
+
+        data = [
+            {
+                **item.to_json(),
+                "lat": item.lat,
+                "lon": item.lon
+            }
+            for item in weather_list if item.day < days
+        ]
+
+        return redirect('/dashboard/')
+    except LocationNotFoundError:
+        return render_template('result.html', result="Location not found")
     except Exception as ex:
         print(ex)
-        return render_template('result.html', result="unpredictable exception")
-
-
-@app.route('/visualization', methods=['GET'])
-def visualization():
-    return redirect('/dash/')
+        return render_template('result.html', result="Unpredictable exception")
 
 
 if __name__ == '__main__':

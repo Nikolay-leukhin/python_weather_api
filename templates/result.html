@@ -22,7 +22,7 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             padding: 20px;
             text-align: center;
-            width: 300px;
+            width: 500px;
         }
         h1 {
             font-size: 24px;
@@ -42,6 +42,22 @@
             font-size: 50px;
             margin-bottom: 20px;
         }
+        .weather-data {
+            text-align: left;
+            margin-top: 20px;
+        }
+        .weather-data table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .weather-data th, .weather-data td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .weather-data th {
+            background-color: #f2f2f2;
+        }
         .button {
             background-color: #3498db;
             color: white;
@@ -60,19 +76,40 @@
 </head>
 <body>
     <div class="container">
-        <div class="icon">
-            <i class="fas fa-cloud-sun"></i>
-        </div>
         <h1>Результат оценки погоды</h1>
-        <div class="result {% if result == 'location not found' %}error{% elif result == 'Плохие погодные условия' %}error{% else %}success{% endif %}">
+
+        <div class="result {% if result == 'location not found' %}error{% elif result == 'unpredictable exception' %}error{% else %}success{% endif %}">
             {% if result == 'location not found' %}
                 Не удалось найти указанное местоположение. Пожалуйста, проверьте правильность ввода.
-            {% elif result == 'Плохие погодные условия' %}
-                Внимание! Погодные условия в вашем регионе плохие. Будьте осторожны!
+            {% elif result == 'unpredictable exception' %}
+                Произошла непредвиденная ошибка. Попробуйте снова.
             {% else %}
-                {{ result }}
+                <div class="weather-data">
+                    <h3>Прогноз погоды:</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Город</th>
+                                <th>Температура</th>
+                                <th>Скорость ветра</th>
+                                <th>Вероятность осадков</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for weather in result %}
+                                <tr>
+                                    <td>{{ weather.city }}</td>
+                                    <td>{{ weather.temperature }}°C</td>
+                                    <td>{{ weather.wind_speed }} км/ч</td>
+                                    <td>{{ weather.precipitation_probability }}%</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             {% endif %}
         </div>
+
         <a href="/visualization" class="button">Визуализация данных</a>
         <a href="/" class="button">Назад</a>
     </div>
