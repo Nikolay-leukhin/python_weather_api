@@ -1,51 +1,17 @@
-function validateForm(event, pointValue) {
-    const englishPattern = /^[A-Za-z\s]+$/;
-
-    if (!englishPattern.test(pointValue)) {
-        alert('Пожалуйста, используйте только английские буквы без чисел и других символов.');
-        event.preventDefault();
-        return false;
-    }
-
-    return true;
-}
-
-function validateAllForms(event) {
-    event.preventDefault();
-
-    const startPoint = document.getElementById('start_point').value.trim();
-    const endPoint = document.getElementById('end_point').value.trim();
-
-    let html = document.getElementsByClassName('point');
-    let length = html.length;
-
-    for (let i = 0; i < length; ++i) {
-        let result = validateForm(event, html[i].value.trim());
-        if (!result) {
-            return false;
-        }
-    }
-
-    if (startPoint === '' || endPoint === '') {
-        alert('Пожалуйста, заполните оба поля.');
-        event.preventDefault();
-        return false;
-    }
-
-    if (startPoint === endPoint) {
-        alert('Начальная и конечная точки не могут совпадать.');
-        event.preventDefault();
-        return false;
-    }
-
+window.addEventListener('DOMContentLoaded', function () {
     document.getElementById('requestForm').addEventListener('submit', function (event) {
+        event.preventDefault(); 
+
+        if (!validateAllForms(event)) { 
+            return;
+        }
+
+        document.getElementById('loading').style.display = 'block';
 
         const formData = new FormData(this);
 
-
         const daysSelect = this.querySelector('#days');
         const daysValue = daysSelect.value;
-
 
         let values = {
             "points": [],
@@ -84,11 +50,48 @@ function validateAllForms(event) {
                 console.error('Error:', error);
             });
     });
+});
 
+function validateForm(event, pointValue) {
+    const englishPattern = /^[A-Za-z\s]+$/;
 
-    return false;
+    if (!englishPattern.test(pointValue)) {
+        alert('Пожалуйста, используйте только английские буквы без чисел и других символов.');
+        event.preventDefault();
+        return false;
+    }
+
+    return true;
 }
 
+function validateAllForms(event) {
+    const startPoint = document.getElementById('start_point').value.trim();
+    const endPoint = document.getElementById('end_point').value.trim();
+
+    let html = document.getElementsByClassName('point');
+    let length = html.length;
+
+    for (let i = 0; i < length; ++i) {
+        let result = validateForm(event, html[i].value.trim());
+        if (!result) {
+            return false;
+        }
+    }
+
+    if (startPoint === '' || endPoint === '') {
+        alert('Пожалуйста, заполните оба поля.');
+        event.preventDefault(); 
+        return false;
+    }
+
+    if (startPoint === endPoint) {
+        alert('Начальная и конечная точки не могут совпадать.');
+        event.preventDefault();
+        return false;
+    }
+
+    return true;
+}
 
 function addIntermediatePoint() {
     const container = document.getElementById('intermediate_points_container');

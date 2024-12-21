@@ -117,6 +117,8 @@ def index():
 @app.route('/eval', methods=['POST'])
 def evaluate():
     global data, days
+
+    render_template('loading.html')
     try:
 
         points = request.json['points']
