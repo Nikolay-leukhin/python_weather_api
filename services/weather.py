@@ -6,7 +6,7 @@ from models import WeatherModel
 
 
 class WeatherApi:
-    __API_KEY = '3583mUhHqKIW14Ht2RzVcJDQiqlqAIdP'
+    __API_KEY = 'GCzmBFxcsQ3bRihoAUYm8T9XVBvLmqBD'
     __API_CITY_KEY = '73e3d50183089ceebacb8c4a36fe94c3'
     __BASE_URL = 'http://dataservice.accuweather.com/'
 

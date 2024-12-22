@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from dash import Dash, dcc, html, Input, Output
 import plotly.express as px
 import plotly.graph_objects as go
@@ -146,6 +146,32 @@ def evaluate():
     except Exception as ex:
         print(ex)
         return render_template('result.html', result="Unpredictable exception")
+
+
+@app.route('/weather', methods=['POST'])
+def get_weather():
+    try:
+        response = request.json
+        points = response['points']
+        d = response['days']
+
+        weather_list = []
+
+        for city in points:
+            weather_by_city = api.get_weather_by_city_name(city, d)
+            weather_list.extend(weather_by_city)
+
+        response_data = [
+            item.to_json()
+            for item in weather_list if item.day < d
+        ]
+
+        return jsonify(response_data), 200
+    except LocationNotFoundError:
+        return jsonify({"error": "Location not found"}), 404
+    except Exception as ex:
+        print(ex)
+        return jsonify({"error": "Unpredictable exception"}), 500
 
 
 if __name__ == '__main__':
